@@ -1,0 +1,17 @@
+[MESSAGES CONTROL]
+disable=
+    unused-argument,
+    unused-import,
+    import-error,
+    no-member,
+    too-general-exception
+
+[FORMAT]
+max-line-length=120
+
+[DESIGN]
+max-args=10
+max-locals=20
+max-returns=10
+max-branches=15
+max-statements=60
