@@ -22,6 +22,7 @@ class AzureFormRecognizerService:
     def __init__(self):
         self.endpoint = settings.AZURE_FORM_RECOGNIZER_ENDPOINT
         self.key = settings.AZURE_FORM_RECOGNIZER_KEY
+        self.model_id = settings.AZURE_FORM_RECOGNIZER_MODEL_ID
         
         if not self.endpoint or not self.key:
             logger.warning("Azure Form Recognizer credentials not configured")
@@ -41,13 +42,12 @@ class AzureFormRecognizerService:
         """Verificar si el servicio está configurado correctamente"""
         return self.client is not None and bool(self.endpoint and self.key)
     
-    def analyze_document(self, image_path: str, model_id: str = None) -> Dict[str, Any]:
+    def analyze_document(self, image_path: str) -> Dict[str, Any]:
         """
-        Analizar un documento usando Azure Form Recognizer.
+        Analizar un documento usando el modelo entrenado personalizado.
         
         Args:
             image_path: Ruta al archivo de imagen
-            model_id: ID del modelo entrenado personalizado (opcional)
             
         Returns:
             Dict con los datos extraídos del documento
@@ -57,11 +57,9 @@ class AzureFormRecognizerService:
         
         try:
             with open(image_path, "rb") as f:
-                # Usar modelo personalizado si se proporciona, sino usar prebuilt-document
-                model_to_use = model_id if model_id else "prebuilt-document"
-                
+                # Usar el modelo entrenado personalizado
                 poller = self.client.begin_analyze_document(
-                    model_to_use, 
+                    self.model_id, 
                     document=f
                 )
                 result = poller.result()
@@ -84,7 +82,7 @@ class AzureFormRecognizerService:
     
     def _extract_data_from_result(self, result) -> Dict[str, Any]:
         """
-        Extraer datos estructurados del resultado de Azure Form Recognizer.
+        Extraer datos estructurados del resultado del modelo entrenado.
         
         Args:
             result: Resultado del análisis de Azure
@@ -136,15 +134,16 @@ class AzureFormRecognizerService:
                             'confidence': kv_pair.confidence
                         }
             
-            # Procesar datos específicos de planillas
-            extracted_data = self._process_planilla_data(extracted_data)
-            
-            # Guardar resultado completo
+            # Guardar resultado completo incluyendo documentos
             extracted_data['raw_result'] = {
                 'pages': len(result.pages) if hasattr(result, 'pages') else 0,
                 'tables_count': len(result.tables) if hasattr(result, 'tables') else 0,
-                'key_value_pairs_count': len(result.key_value_pairs) if hasattr(result, 'key_value_pairs') else 0
+                'key_value_pairs_count': len(result.key_value_pairs) if hasattr(result, 'key_value_pairs') else 0,
+                'documents': result.documents if hasattr(result, 'documents') else []
             }
+            
+            # Procesar datos específicos de planillas usando el modelo entrenado
+            extracted_data = self._process_planilla_data(extracted_data)
             
         except Exception as e:
             logger.error("Error processing Azure result: %s", e)
@@ -154,7 +153,7 @@ class AzureFormRecognizerService:
     
     def _process_planilla_data(self, extracted_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Procesar datos específicos de planillas de recaudación.
+        Procesar datos específicos del modelo entrenado rendibus.v1.
         
         Args:
             extracted_data: Datos extraídos de Azure
@@ -163,36 +162,90 @@ class AzureFormRecognizerService:
             Datos procesados específicos para planillas
         """
         try:
-            # Buscar patrones comunes en planillas de recaudación
-            texto = extracted_data.get('texto_completo', '').lower()
+            # Obtener campos del documento
+            documents = extracted_data.get('raw_result', {}).get('documents', [])
+            if not documents:
+                return extracted_data
             
-            # Detectar tarifas (patrones comunes)
-            tarifa_keywords = ['pasaje', 'tarifa', 'precio', 'boleto', 'ticket']
-            for keyword in tarifa_keywords:
-                if keyword in texto:
-                    # Aquí podrías implementar lógica específica para extraer tarifas
-                    pass
+            fields = documents[0].get('fields', {})
             
-            # Detectar ingresos
-            ingreso_keywords = ['ingreso', 'entrada', 'recaudación', 'venta']
-            for keyword in ingreso_keywords:
-                if keyword in texto:
-                    # Lógica para extraer ingresos
-                    pass
+            # Procesar tarifas (Tarifa 1-6)
+            tarifas = []
+            for i in range(1, 7):
+                tarifa_key = f"Tarifa {i}"
+                if tarifa_key in fields:
+                    tarifa_data = fields[tarifa_key]
+                    tarifas.append({
+                        'concepto': f'Tarifa {i}',
+                        'precio': float(tarifa_data.get('valueString', '0').replace('.', '').replace(',', '.')),
+                        'cantidad': 1,  # Se calculará basado en tickets
+                        'subtotal': 0  # Se calculará
+                    })
             
-            # Detectar egresos
-            egreso_keywords = ['egreso', 'gasto', 'salida', 'descuento']
-            for keyword in egreso_keywords:
-                if keyword in texto:
-                    # Lógica para extraer egresos
-                    pass
+            # Procesar ingresos
+            ingresos = []
+            if 'Total Ingreso Ruta' in fields:
+                ingresos.append({
+                    'concepto': 'Total Ingreso Ruta',
+                    'monto': float(fields['Total Ingreso Ruta'].get('valueString', '0').replace('.', '').replace(',', '.')),
+                    'observaciones': 'Ingreso en ruta'
+                })
             
-            # Detectar control de boletos
-            control_keywords = ['talonario', 'control', 'inicial', 'final', 'vendido']
-            for keyword in control_keywords:
-                if keyword in texto:
-                    # Lógica para extraer control de boletos
-                    pass
+            if 'Total Ingreso Oficina' in fields:
+                ingresos.append({
+                    'concepto': 'Total Ingreso Oficina',
+                    'monto': float(fields['Total Ingreso Oficina'].get('valueString', '0').replace('.', '').replace(',', '.')),
+                    'observaciones': 'Ingreso en oficina'
+                })
+            
+            # Procesar egresos
+            egresos = []
+            egreso_fields = ['Losa', 'Cena', 'Viáticos', 'Pensión', 'Otros']
+            for field_name in egreso_fields:
+                if field_name in fields:
+                    field_data = fields[field_name]
+                    monto = field_data.get('valueNumber', 0)
+                    if monto > 0:
+                        egresos.append({
+                            'concepto': field_name,
+                            'monto': float(monto),
+                            'observaciones': f'Egreso: {field_name}'
+                        })
+            
+            # Procesar control de boletos
+            control_boletos = []
+            for i in range(1, 7):
+                inicial_key = f"Ticket Inicial T{i}"
+                final_key = f"Ticket Final T{i}"
+                if inicial_key in fields and final_key in fields:
+                    inicial = int(fields[inicial_key].get('valueString', '0'))
+                    final = int(fields[final_key].get('valueString', '0'))
+                    if final > inicial:
+                        control_boletos.append({
+                            'numero_inicial': inicial,
+                            'numero_final': final,
+                            'cantidad_vendidos': final - inicial + 1,
+                            'cantidad_devueltos': 0,
+                            'cantidad_anulados': 0
+                        })
+            
+            # Agregar datos procesados
+            extracted_data['tarifas'] = tarifas
+            extracted_data['ingresos'] = ingresos
+            extracted_data['egresos'] = egresos
+            extracted_data['control_boletos'] = control_boletos
+            
+            # Información general de la planilla
+            extracted_data['info_general'] = {
+                'ciudad_origen': fields.get('Ciudad Origen', {}).get('valueString', ''),
+                'ciudad_retorno': fields.get('Ciudad Retorno', {}).get('valueString', ''),
+                'fecha': fields.get('Fecha', {}).get('valueDate', ''),
+                'numero_planilla': fields.get('Nro Planilla', {}).get('valueString', ''),
+                'conductor': fields.get('Nom. Conductor', {}).get('valueString', ''),
+                'asistente': fields.get('Nom. Asistente', {}).get('valueString', ''),
+                'numero_bus': fields.get('Número Bus', {}).get('valueString', ''),
+                'patente_bus': fields.get('Patente Bus', {}).get('valueString', '')
+            }
             
         except Exception as e:
             logger.error("Error processing planilla data: %s", e)

@@ -154,4 +154,4 @@ REST_FRAMEWORK = {
 # Configurado para: https://azure-rendibus.cognitiveservices.azure.com/
 AZURE_FORM_RECOGNIZER_ENDPOINT = config('AZURE_FORM_RECOGNIZER_ENDPOINT', default='')
 AZURE_FORM_RECOGNIZER_KEY = config('AZURE_FORM_RECOGNIZER_KEY', default='')
-# TODO: Agregar AZURE_FORM_RECOGNIZER_MODEL_ID cuando se tenga el modelo entrenado
+AZURE_FORM_RECOGNIZER_MODEL_ID = config('AZURE_FORM_RECOGNIZER_MODEL_ID', default='f99444d7-6fb9-459b-94c2-b6759350bc7c')
