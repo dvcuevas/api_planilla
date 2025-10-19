@@ -242,9 +242,13 @@ class AzureFormRecognizerService:
                 'fecha': fields.get('Fecha', {}).get('valueDate', ''),
                 'numero_planilla': fields.get('Nro Planilla', {}).get('valueString', ''),
                 'conductor': fields.get('Nom. Conductor', {}).get('valueString', ''),
+                'codigo_conductor': fields.get('Cód. Conductor', {}).get('valueString', ''),
                 'asistente': fields.get('Nom. Asistente', {}).get('valueString', ''),
+                'codigo_asistente': fields.get('Cód. Asistente', {}).get('valueString', ''),
                 'numero_bus': fields.get('Número Bus', {}).get('valueString', ''),
-                'patente_bus': fields.get('Patente Bus', {}).get('valueString', '')
+                'patente_bus': fields.get('Patente Bus', {}).get('valueString', ''),
+                'horario_origen': fields.get('Horario Horigen', {}).get('valueString', ''),
+                'horario_retorno': fields.get('Horario Retorno', {}).get('valueString', '')
             }
             
         except Exception as e:

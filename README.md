@@ -10,10 +10,14 @@ API REST para procesar planillas de recaudación usando Azure Form Recognizer.
 - Integración Azure Form Recognizer configurada
 - Endpoint: https://azure-rendibus.cognitiveservices.azure.com/
 - Credenciales configuradas y probadas
+- **Modelo entrenado rendibus.v1 integrado** (ID: f99444d7-6fb9-459b-94c2-b6759350bc7c)
+- **Mapeo completo de campos del modelo personalizado**
+- **Procesamiento automático end-to-end**
 
 🔄 **PENDIENTE:**
-- Integración con modelo entrenado personalizado
-- Mapeo de campos específicos del modelo
+- Pruebas con imágenes reales
+- Integración con app web responsiva
+- Integración con app móvil
 
 - **API REST completa** con Django REST Framework
 - **Subida de imágenes** de planillas
@@ -84,7 +88,7 @@ python azure_test.py
 - `GET /api/planillas/` - Listar planillas
 - `POST /api/planillas/` - Crear planilla (subir imagen)
 - `GET /api/planillas/{id}/` - Detalle de planilla
-- `POST /api/planillas/{id}/procesar_con_azure/` - Procesar con Azure
+- `POST /api/planillas/{id}/procesar_con_azure/` - **Procesar con modelo entrenado**
 - `GET /api/planillas/{id}/datos_extraidos/` - Obtener datos extraídos
 - `GET /api/planillas/test_azure_connection/` - Probar conexión Azure
 
@@ -157,12 +161,38 @@ GET http://127.0.0.1:8000/api/planillas/1/datos_extraidos/
 - `total_boletos` - Total calculado automáticamente
 - `boletos_faltantes` - Boletos faltantes calculados
 
-## 🔍 Estados de Procesamiento
+## 🔍 Campos Extraídos Automáticamente
 
-- **pending** - Imagen subida, esperando procesamiento
-- **processing** - Enviada a Azure Form Recognizer
-- **completed** - Procesada exitosamente
-- **error** - Error en el procesamiento
+### **Tarifas (Tarifa 1-6)**
+- Precios de cada tarifa
+- Cantidad vendida
+- Subtotal calculado
+
+### **Ingresos**
+- Total Ingreso Ruta
+- Total Ingreso Oficina
+- Total Boletos
+
+### **Egresos**
+- Losa
+- Cena
+- Viáticos
+- Pensión
+- Otros
+
+### **Control de Boletos**
+- Ticket Inicial T1-T6
+- Ticket Final T1-T6
+- Cantidad vendida calculada
+
+### **Información General**
+- Ciudad Origen/Retorno
+- Fecha de la planilla
+- Número de planilla
+- Conductor (nombre + código)
+- Asistente (nombre + código)
+- Número y patente del bus
+- Horarios de origen y retorno
 
 ## 📝 Logs
 
