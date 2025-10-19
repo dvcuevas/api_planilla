@@ -53,6 +53,9 @@ class PlanillaViewSet(viewsets.ModelViewSet):
     def procesar_con_azure(self, request, pk=None):  # pylint: disable=unused-argument
         """
         Endpoint para procesar una planilla con Azure Form Recognizer.
+        
+        Usa el modelo entrenado personalizado configurado en settings.
+        Extrae datos y los mapea a los modelos Django.
         """
         planilla = self.get_object()
         

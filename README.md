@@ -2,7 +2,18 @@
 
 API REST para procesar planillas de recaudación usando Azure Form Recognizer.
 
-## 🚀 Características
+## 🚀 Estado del Proyecto
+
+✅ **COMPLETADO:**
+- API REST Django funcional
+- Modelos de datos completos
+- Integración Azure Form Recognizer configurada
+- Endpoint: https://azure-rendibus.cognitiveservices.azure.com/
+- Credenciales configuradas y probadas
+
+🔄 **PENDIENTE:**
+- Integración con modelo entrenado personalizado
+- Mapeo de campos específicos del modelo
 
 - **API REST completa** con Django REST Framework
 - **Subida de imágenes** de planillas

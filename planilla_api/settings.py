@@ -150,6 +150,8 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
-# Azure Form Recognizer configuration (para más adelante)
+# Azure Form Recognizer configuration
+# Configurado para: https://azure-rendibus.cognitiveservices.azure.com/
 AZURE_FORM_RECOGNIZER_ENDPOINT = config('AZURE_FORM_RECOGNIZER_ENDPOINT', default='')
 AZURE_FORM_RECOGNIZER_KEY = config('AZURE_FORM_RECOGNIZER_KEY', default='')
+# TODO: Agregar AZURE_FORM_RECOGNIZER_MODEL_ID cuando se tenga el modelo entrenado
